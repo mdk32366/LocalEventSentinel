@@ -1,0 +1,20 @@
+[Unit]
+Description=PNW Event Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# ---------------------------------------------------------------
+# EDIT THESE TWO LINES to match your actual paths:
+User=pi
+WorkingDirectory=/home/pi/pnw_event_monitor
+ExecStart=/home/pi/pnw_event_monitor/venv/bin/python monitor.py
+# ---------------------------------------------------------------
+Restart=on-failure
+RestartSec=60
+StandardOutput=append:/home/pi/pnw_event_monitor/logs/service.log
+StandardError=append:/home/pi/pnw_event_monitor/logs/service.log
+
+[Install]
+WantedBy=multi-user.target

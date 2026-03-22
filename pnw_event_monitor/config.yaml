@@ -1,0 +1,221 @@
+# =============================================================================
+# PNW Event Monitor — Configuration
+# Edit this file to control everything. No code changes needed.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# EMAIL SETTINGS
+# ---------------------------------------------------------------------------
+email:
+  to: "your@email.com"           # Your email address
+  from_name: "PNW Event Monitor"
+
+  # Weekly digest schedule
+  send_day: "tuesday"            # monday/tuesday/wednesday/thursday/friday/saturday/sunday
+  send_time: "08:00"             # 24-hour format, local time
+
+  # SMTP — Gmail example (see README for other providers)
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+  smtp_user: "sender@gmail.com"  # Sending account
+  smtp_pass: "xxxx xxxx xxxx xxxx"  # Gmail App Password (NOT your login password)
+  # For SendGrid: set smtp_host to smtp.sendgrid.net, port 587,
+  #   smtp_user to "apikey", smtp_pass to your SendGrid API key
+
+# ---------------------------------------------------------------------------
+# INTEREST CATEGORIES
+# Match against these keywords found in event titles/descriptions.
+# Add, remove, or edit freely. Case-insensitive.
+# ---------------------------------------------------------------------------
+categories:
+  Live Music:
+    keywords: [concert, live music, band, jazz, bluegrass, folk, acoustic, singer, songwriter, orchestra, symphony, trio, quartet, open mic, jam session]
+    color: "#1D9E75"
+
+  Farmers Market:
+    keywords: [farmers market, farm stand, market day, public market, artisan market, growers market]
+    color: "#639922"
+
+  Art & Gallery:
+    keywords: [art show, gallery, exhibit, exhibition, opening, artist, sculpture, photography, ceramics, painting, printmaking, studio tour]
+    color: "#7F77DD"
+
+  Theatre & Dance:
+    keywords: [theatre, theater, play, musical, dance, ballet, opera, improv, performance, stage, production]
+    color: "#D4537E"
+
+  Comedy:
+    keywords: [comedy, comedian, stand-up, standup, open mic comedy, improv comedy, sketch]
+    color: "#EF9F27"
+
+  Food & Drink Events:
+    keywords: [wine tasting, beer fest, food festival, dinner, tasting, harvest dinner, cider, cocktail, chef, culinary, brewery event, distillery]
+    color: "#D85A30"
+
+  Outdoor & Nature:
+    keywords: [hike, hiking, kayak, paddle, trail, birding, tide pool, whale watch, garden tour, outdoor, nature walk, foraging]
+    color: "#1D9E75"
+
+  Film Screening:
+    keywords: [film, movie, screening, cinema, documentary, short film, film festival]
+    color: "#534AB7"
+
+  Community Festival:
+    keywords: [festival, fair, celebration, parade, street fair, block party, cultural, heritage, fiesta, carnival]
+    color: "#BA7517"
+
+  Craft Fair:
+    keywords: [craft fair, craft show, makers market, handmade, artisan fair, holiday market, bazaar]
+    color: "#993556"
+
+  Lecture & Talk:
+    keywords: [lecture, talk, speaker, panel, symposium, workshop, class, seminar, author reading, book club]
+    color: "#185FA5"
+
+# ---------------------------------------------------------------------------
+# GEOGRAPHIC FILTER
+# Only keep events that mention these location keywords.
+# Events with no location info pass through (don't block them).
+# ---------------------------------------------------------------------------
+geography:
+  enabled: true
+  keywords:
+    - bellingham
+    - whatcom
+    - anacortes
+    - fidalgo
+    - la conner
+    - mount vernon
+    - mt. vernon
+    - burlington
+    - skagit
+    - friday harbor
+    - san juan
+    - orcas island
+    - lopez island
+    - shaw island
+    - whidbey
+    - oak harbor
+    - langley
+    - coupeville
+    - everett
+    - edmonds
+    - seattle
+    - snohomish
+    - lynden
+    - ferndale
+    - blaine
+    - birch bay
+
+# ---------------------------------------------------------------------------
+# SCAN SOURCES
+# Each source is scraped every scan cycle.
+# Set enabled: false to temporarily disable without deleting.
+# ---------------------------------------------------------------------------
+sources:
+
+  # --- EVENTBRITE (public API, no key required for basic search) ---
+  - name: "Eventbrite — Bellingham"
+    type: eventbrite
+    location: "Bellingham, WA"
+    radius_km: 50
+    enabled: true
+
+  - name: "Eventbrite — Anacortes"
+    type: eventbrite
+    location: "Anacortes, WA"
+    radius_km: 30
+    enabled: true
+
+  - name: "Eventbrite — Friday Harbor"
+    type: eventbrite
+    location: "Friday Harbor, WA"
+    radius_km: 20
+    enabled: true
+
+  # --- SCRAPED WEBSITES ---
+  - name: "Bellingham What's Up"
+    type: web
+    url: "https://www.whatsupmag.com/events/"
+    enabled: true
+
+  - name: "Skagit Valley Herald Events"
+    type: web
+    url: "https://www.goskagit.com/events/"
+    enabled: true
+
+  - name: "Anacortes Arts"
+    type: web
+    url: "https://www.anacortesarts.com/events/"
+    enabled: true
+
+  - name: "Visit San Juans Events"
+    type: web
+    url: "https://www.visitsanjuans.com/events"
+    enabled: true
+
+  - name: "Visit Seattle Events"
+    type: web
+    url: "https://visitseattle.org/events/"
+    enabled: true
+
+  - name: "Bellingham Parks Events"
+    type: web
+    url: "https://www.cob.org/services/recreation/parks-trails/Pages/events.aspx"
+    enabled: true
+
+  - name: "Port Townsend Main Street Events"
+    type: web
+    url: "https://ptmainstreet.org/events/"
+    enabled: true
+
+  # --- BANDSINTOWN (music events, no key required for basic use) ---
+  - name: "Bandsintown — Bellingham area"
+    type: bandsintown
+    location: "Bellingham, WA"
+    enabled: true
+
+  # --- RSS BRIDGES (for Facebook Pages — see README for setup) ---
+  # To add a Facebook Page, use rss.app or feedless.io to get a feed URL,
+  # then paste it here as type: rss
+  - name: "Facebook: Bellingham Events (RSS bridge)"
+    type: rss
+    url: "https://rss.app/feeds/REPLACE_WITH_YOUR_FEED_ID.xml"
+    enabled: false   # Change to true after setting up RSS bridge
+
+  - name: "Facebook: Friday Harbor Music (RSS bridge)"
+    type: rss
+    url: "https://rss.app/feeds/REPLACE_WITH_YOUR_FEED_ID.xml"
+    enabled: false
+
+  - name: "Facebook: Anacortes Events (RSS bridge)"
+    type: rss
+    url: "https://rss.app/feeds/REPLACE_WITH_YOUR_FEED_ID.xml"
+    enabled: false
+
+# ---------------------------------------------------------------------------
+# SCAN SCHEDULE
+# ---------------------------------------------------------------------------
+schedule:
+  # Automatic background scans
+  scan_interval_hours: 12    # Scan twice daily (6am and 6pm)
+  lookback_days: 14          # How far ahead to look for events
+  
+  # How long to keep old events in the database
+  retention_days: 90
+
+# ---------------------------------------------------------------------------
+# OUTPUT SETTINGS
+# ---------------------------------------------------------------------------
+output:
+  # Number of events to show in on-screen (CLI) output
+  screen_max_events: 50
+
+  # Days ahead to include in weekly email digest
+  email_lookahead_days: 10
+
+  # Group events by category in email
+  email_group_by_category: true
+
+  # Include a map link (Google Maps) for each event location
+  include_map_links: true
