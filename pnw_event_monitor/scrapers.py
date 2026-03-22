@@ -6,6 +6,13 @@ Source types handled:
   - bandsintown  : Bandsintown public artist/city search
   - web          : Generic HTML scraping with heuristic event extraction
   - rss          : RSS/Atom feed parsing (for Facebook RSS bridges, etc.)
+  - ticketmaster : Ticketmaster sports & events search
+  - mlb          : MLB (Major League Baseball) team schedules
+  - milb         : Minor League Baseball schedules
+  - nfl          : NFL (National Football League) team schedules
+  - nhl          : NHL (National Hockey League) team schedules
+  - pbr          : PBR (Professional Bull Riders) events
+  - rodeo        : PRCA rodeo events
 """
 
 import re
@@ -402,6 +409,386 @@ def scrape_web(source_cfg: dict, lookback_days: int = 14) -> list:
 
 
 # =============================================================================
+# PROFESSIONAL SPORTS SCRAPERS
+# =============================================================================
+
+def scrape_ticketmaster(source_cfg: dict, lookback_days: int = 14) -> list:
+    """
+    Scrape Ticketmaster for sports events (baseball, football, hockey, rodeo, bull riders).
+    Uses generic web scraping since public API requires key.
+    """
+    location = source_cfg.get("location", "Seattle, WA")
+    keywords = source_cfg.get("keywords", ["sports"])
+    events = []
+    
+    # Search for each keyword on Ticketmaster
+    for keyword in keywords:
+        try:
+            # Ticketmaster public search (works without API key)
+            url = f"https://www.ticketmaster.com/search?q={keyword}&sort=date,asc"
+            resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            
+            # Look for event listings
+            for card in soup.select("[data-testid='event-card'], .event-card, .js-event-item")[:20]:
+                title_el = card.select_one("h3, h2, .event-title")
+                if not title_el:
+                    continue
+                    
+                title = title_el.get_text(strip=True)
+                if not title or len(title) < 4:
+                    continue
+                
+                # Extract link
+                link_el = card.select_one("a[href*='ticketmaster.com']")
+                url_event = link_el["href"] if link_el else ""
+                
+                # Find date information
+                date_el = card.select_one("time, [data-testid*='date'], .event-date")
+                date_raw = date_el.get_text(strip=True) if date_el else ""
+                date_attr = date_el.get("datetime") if date_el else ""
+                date_parsed = try_parse_date(date_attr or date_raw)
+                
+                # Find location
+                loc_el = card.select_one("[data-testid*='venue'], .venue-name, .event-location")
+                location_text = loc_el.get_text(strip=True) if loc_el else location
+                
+                # Get description/details
+                desc_el = card.select_one(".event-description, p.event-details")
+                description = desc_el.get_text(strip=True) if desc_el else ""
+                
+                events.append({
+                    "title": title,
+                    "date_raw": date_raw,
+                    "date_parsed": date_parsed,
+                    "time_raw": "",
+                    "location": location_text,
+                    "description": description,
+                    "url": url_event,
+                    "source_name": source_cfg["name"],
+                })
+        except Exception as e:
+            logger.warning(f"Ticketmaster scrape error ({keyword}): {e}")
+    
+    return events
+
+
+def scrape_mlb(source_cfg: dict, lookback_days: int = 14) -> list:
+    """Scrape MLB team schedule from MLB.com."""
+    events = []
+    url = source_cfg.get("url", "")
+    team_name = source_cfg.get("team", "seattle mariners")
+    
+    if not url:
+        return []
+    
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        
+        # Look for game listings (common patterns on MLB.com)
+        for game_card in soup.select("tr.tr-game, div.game-recap, div[class*='game'], [data-testid*='game']")[:50]:
+            text = game_card.get_text(" ", strip=True)
+            
+            # Extract teams
+            title_parts = [team_name]
+            vs_match = re.search(r"(?:vs|@)\s+([A-Z][A-Za-z\s]+)", text)
+            if vs_match:
+                title_parts.append(vs_match.group(1).strip())
+            
+            title = " ".join(title_parts[:2])
+            if len(title) < 5:
+                continue
+            
+            # Find date
+            date_m = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}", text)
+            date_raw = date_m.group(0) if date_m else ""
+            date_parsed = try_parse_date(date_raw)
+            
+            # Find time
+            time_raw = extract_time(text)
+            
+            # Find location (stadium/venue)
+            location = team_name.split()[-1] + " Stadium" if team_name else "TBD"
+            
+            if date_parsed:
+                events.append({
+                    "title": title,
+                    "date_raw": date_raw,
+                    "date_parsed": date_parsed,
+                    "time_raw": time_raw,
+                    "location": location,
+                    "description": f"MLB Game: {text[:200]}",
+                    "url": url,
+                    "source_name": source_cfg["name"],
+                })
+    except Exception as e:
+        logger.warning(f"MLB scrape error: {e}")
+    
+    return events
+
+
+def scrape_milb(source_cfg: dict, lookback_days: int = 14) -> list:
+    """Scrape Minor League Baseball (MiLB) schedule."""
+    events = []
+    url = source_cfg.get("url", "")
+    team_name = source_cfg.get("team", "tacoma rainiers")
+    
+    if not url:
+        return []
+    
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        
+        # MiLB schedule patterns
+        for game_item in soup.select("tr, li[class*='game'], div[class*='schedule']")[:50]:
+            text = game_item.get_text(" ", strip=True)
+            
+            if not any(keyword in text.lower() for keyword in ["game", "vs", "@"]):
+                continue
+            
+            # Parse team info
+            title = f"{team_name} Game"
+            
+            # Find date
+            date_m = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}", text)
+            date_raw = date_m.group(0) if date_m else ""
+            date_parsed = try_parse_date(date_raw)
+            time_raw = extract_time(text)
+            
+            if date_parsed:
+                events.append({
+                    "title": title,
+                    "date_raw": date_raw,
+                    "date_parsed": date_parsed,
+                    "time_raw": time_raw,
+                    "location": team_name,
+                    "description": f"Minor League Baseball: {text[:200]}",
+                    "url": url,
+                    "source_name": source_cfg["name"],
+                })
+    except Exception as e:
+        logger.warning(f"MiLB scrape error: {e}")
+    
+    return events
+
+
+def scrape_nfl(source_cfg: dict, lookback_days: int = 14) -> list:
+    """Scrape NFL team schedule from NFL.com."""
+    events = []
+    url = source_cfg.get("url", "")
+    team_name = source_cfg.get("team", "seattle seahawks")
+    
+    if not url:
+        return []
+    
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        
+        # Look for game rows/cards
+        for game in soup.select("tr[class*='game'], li[class*='game'], div[class*='game-card']")[:50]:
+            text = game.get_text(" ", strip=True)
+            
+            # Extract opponent
+            opp_match = re.search(r"(?:vs|@|@[A-Z])\s+([A-Z][A-Za-z\s]+?)(?:\s*\d|$)", text)
+            opponent = opp_match.group(1).strip() if opp_match else "TBD"
+            title = f"{team_name} vs {opponent}"
+            
+            # Find date (NFL dates in specific format)
+            date_m = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}", text)
+            date_raw = date_m.group(0) if date_m else ""
+            date_parsed = try_parse_date(date_raw)
+            time_raw = extract_time(text)
+            
+            if date_parsed:
+                events.append({
+                    "title": title,
+                    "date_raw": date_raw,
+                    "date_parsed": date_parsed,
+                    "time_raw": time_raw,
+                    "location": "Seattle" if "seahawks" in team_name.lower() else "TBD",
+                    "description": f"NFL Game: {text[:200]}",
+                    "url": url,
+                    "source_name": source_cfg["name"],
+                })
+    except Exception as e:
+        logger.warning(f"NFL scrape error: {e}")
+    
+    return events
+
+
+def scrape_nhl(source_cfg: dict, lookback_days: int = 14) -> list:
+    """Scrape NHL team schedule from NHL.com."""
+    events = []
+    url = source_cfg.get("url", "")
+    team_name = source_cfg.get("team", "seattle kraken")
+    
+    if not url:
+        return []
+    
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        
+        # NHL game cards
+        for game in soup.select("tr[class*='game'], li[class*='game-card'], div[class*='game-preview']")[:50]:
+            text = game.get_text(" ", strip=True)
+            
+            # Extract opponent
+            opp_match = re.search(r"(?:vs|@)\s+([A-Z][A-Za-z\s]+)", text)
+            opponent = opp_match.group(1).strip() if opp_match else "TBD"
+            title = f"{team_name} vs {opponent}"
+            
+            # Find date
+            date_m = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}", text)
+            date_raw = date_m.group(0) if date_m else ""
+            date_parsed = try_parse_date(date_raw)
+            time_raw = extract_time(text)
+            
+            if date_parsed:
+                events.append({
+                    "title": title,
+                    "date_raw": date_raw,
+                    "date_parsed": date_parsed,
+                    "time_raw": time_raw,
+                    "location": "Seattle" if "kraken" in team_name.lower() else "TBD",
+                    "description": f"NHL Hockey Game: {text[:200]}",
+                    "url": url,
+                    "source_name": source_cfg["name"],
+                })
+    except Exception as e:
+        logger.warning(f"NHL scrape error: {e}")
+    
+    return events
+
+
+def scrape_pbr(source_cfg: dict, lookback_days: int = 14) -> list:
+    """Scrape PBR (Professional Bull Riders) events schedule."""
+    events = []
+    url = source_cfg.get("url", "")
+    location = source_cfg.get("location", "Pacific Northwest")
+    
+    if not url:
+        return []
+    
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        
+        # Look for event listings
+        for event in soup.select("div[class*='event'], tr[class*='event'], li[class*='event'], article")[:40]:
+            text = event.get_text(" ", strip=True)
+            
+            if "bull" not in text.lower() and "pbr" not in text.lower():
+                continue
+            
+            # Extract event title
+            title_el = event.select_one("h2, h3, .event-title, .event-name")
+            title = title_el.get_text(strip=True) if title_el else text[:60]
+            
+            if not title or len(title) < 5:
+                continue
+            
+            # Find date
+            date_m = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}", text)
+            date_raw = date_m.group(0) if date_m else ""
+            date_parsed = try_parse_date(date_raw)
+            time_raw = extract_time(text)
+            
+            # Find location
+            loc_el = event.select_one(".venue, .location, .city")
+            event_location = loc_el.get_text(strip=True) if loc_el else location
+            
+            # Find link
+            link_el = event.select_one("a[href]")
+            url_event = link_el["href"] if link_el else url
+            if url_event and not url_event.startswith("http"):
+                url_event = "https://www.pbr.com" + url_event
+            
+            if date_parsed:
+                events.append({
+                    "title": title,
+                    "date_raw": date_raw,
+                    "date_parsed": date_parsed,
+                    "time_raw": time_raw,
+                    "location": event_location,
+                    "description": f"Professional Bull Riders: {text[:200]}",
+                    "url": url_event,
+                    "source_name": source_cfg["name"],
+                })
+    except Exception as e:
+        logger.warning(f"PBR scrape error: {e}")
+    
+    return events
+
+
+def scrape_rodeo(source_cfg: dict, lookback_days: int = 14) -> list:
+    """Scrape PRCA (Professional Rodeo Cowboys Association) rodeo events."""
+    events = []
+    url = source_cfg.get("url", "")
+    location = source_cfg.get("location", "Pacific Northwest")
+    
+    if not url:
+        return []
+    
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.raise_for_status()
+        soup = BeautifulSoup(resp.text, "html.parser")
+        
+        # Look for rodeo event listings
+        for event in soup.select("div[class*='rodeo'], tr[class*='rodeo'], li[class*='event'], .event-item")[:40]:
+            text = event.get_text(" ", strip=True)
+            
+            # Extract event title
+            title_el = event.select_one("h2, h3, .event-title, .rodeo-name")
+            title = title_el.get_text(strip=True) if title_el else text[:60]
+            
+            if not title or len(title) < 5:
+                continue
+            
+            # Find date
+            date_m = re.search(r"(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}", text)
+            date_raw = date_m.group(0) if date_m else ""
+            date_parsed = try_parse_date(date_raw)
+            time_raw = extract_time(text)
+            
+            # Find location
+            loc_el = event.select_one(".venue, .location, .city, .rodeo-location")
+            event_location = loc_el.get_text(strip=True) if loc_el else location
+            
+            # Find link
+            link_el = event.select_one("a[href]")
+            url_event = link_el["href"] if link_el else url
+            if url_event and not url_event.startswith("http"):
+                url_event = "https://www.prorodeo.com" + url_event
+            
+            if date_parsed:
+                events.append({
+                    "title": title,
+                    "date_raw": date_raw,
+                    "date_parsed": date_parsed,
+                    "time_raw": time_raw,
+                    "location": event_location,
+                    "description": f"PRCA Rodeo Event: {text[:200]}",
+                    "url": url_event,
+                    "source_name": source_cfg["name"],
+                })
+    except Exception as e:
+        logger.warning(f"Rodeo scrape error: {e}")
+    
+    return events
+
+
+# =============================================================================
 # DISPATCHER
 # =============================================================================
 
@@ -421,6 +808,20 @@ def scrape_source(source_cfg: dict, lookback_days: int = 14) -> list:
         return scrape_rss(source_cfg, lookback_days)
     elif stype == "web":
         return scrape_web(source_cfg, lookback_days)
+    elif stype == "ticketmaster":
+        return scrape_ticketmaster(source_cfg, lookback_days)
+    elif stype == "mlb":
+        return scrape_mlb(source_cfg, lookback_days)
+    elif stype == "milb":
+        return scrape_milb(source_cfg, lookback_days)
+    elif stype == "nfl":
+        return scrape_nfl(source_cfg, lookback_days)
+    elif stype == "nhl":
+        return scrape_nhl(source_cfg, lookback_days)
+    elif stype == "pbr":
+        return scrape_pbr(source_cfg, lookback_days)
+    elif stype == "rodeo":
+        return scrape_rodeo(source_cfg, lookback_days)
     else:
         logger.warning(f"Unknown source type: {stype}")
         return []

@@ -7,7 +7,7 @@
 # EMAIL SETTINGS
 # ---------------------------------------------------------------------------
 email:
-  to: "your@email.com"           # Your email address
+  to: "mdk32366@email.com"           # Your email address
   from_name: "PNW Event Monitor"
 
   # Weekly digest schedule
@@ -17,8 +17,8 @@ email:
   # SMTP — Gmail example (see README for other providers)
   smtp_host: "smtp.gmail.com"
   smtp_port: 587
-  smtp_user: "sender@gmail.com"  # Sending account
-  smtp_pass: "xxxx xxxx xxxx xxxx"  # Gmail App Password (NOT your login password)
+  smtp_user: "mdk32366@email.com"  # Sending account
+  smtp_pass: "jnrh bggs kaij hpow"  # Gmail App Password (NOT your login password)
   # For SendGrid: set smtp_host to smtp.sendgrid.net, port 587,
   #   smtp_user to "apikey", smtp_pass to your SendGrid API key
 
@@ -71,6 +71,30 @@ categories:
   Lecture & Talk:
     keywords: [lecture, talk, speaker, panel, symposium, workshop, class, seminar, author reading, book club]
     color: "#185FA5"
+
+  MLB — Major League Baseball:
+    keywords: [mlb, major league baseball, baseball, mariners, seattle mariners, angels, astros, rangers, athletics, dodgers, padres, giants, diamondbacks]
+    color: "#0066FF"
+
+  NFL — Professional Football:
+    keywords: [nfl, national football league, football, seahawks, seattle seahawks, broncos, chargers, chiefs, raiders, 49ers, cardinals]
+    color: "#003D7A"
+
+  Minor League Baseball:
+    keywords: [minor league, milb, baseball, triple-a, double-a, high-a, class-a, independent league, affiliated, rainiers, tacoma]
+    color: "#5F9FFF"
+
+  Ice Hockey:
+    keywords: [hockey, nhl, ice hockey, kraken, seattle kraken, canucks, portland, avalanche, vegas, oilers]
+    color: "#66CCFF"
+
+  Rodeo & Western Events:
+    keywords: [rodeo, bull riding, roping, bronc, bareback, steer wrestling, barrel racing, western, prca, ranch rodeo]
+    color: "#8B4513"
+
+  Professional Bull Riders (PBR):
+    keywords: [pbr, professional bull riders, bull riders, bull riding, pbr event, buckle series, world finals, pbr championship]
+    color: "#D4A574"
 
 # ---------------------------------------------------------------------------
 # GEOGRAPHIC FILTER
@@ -192,7 +216,56 @@ sources:
     type: rss
     url: "https://rss.app/feeds/REPLACE_WITH_YOUR_FEED_ID.xml"
     enabled: false
+  # --- PROFESSIONAL SPORTS ---
+  - name: "Ticketmaster Sports — Pacific Northwest"
+    type: ticketmaster
+    keywords: [baseball, football, hockey, rodeo, bull riders]
+    location: "Seattle, WA"
+    radius_km: 200
+    enabled: true
 
+  - name: "MLB — Seattle Mariners Schedule"
+    type: mlb
+    team: "seattle mariners"
+    url: "https://www.mlb.com/mariners/schedule"
+    enabled: true
+
+  - name: "MiLB — Tacoma Rainiers Schedule"
+    type: milb
+    team: "tacoma rainiers"
+    url: "https://www.mlb.com/minor-league/teams/tacoma-rainiers/schedule"
+    enabled: true
+
+  - name: "NFL — Seattle Seahawks Schedule"
+    type: nfl
+    team: "seattle seahawks"
+    url: "https://www.nfl.com/teams/seattle-seahawks/schedule"
+    enabled: true
+
+  - name: "NHL — Seattle Kraken Schedule"
+    type: nhl
+    team: "seattle kraken"
+    url: "https://www.nhl.com/kraken/schedule"
+    enabled: true
+
+  - name: "PBR — Professional Bull Riders Schedule"
+    type: pbr
+    url: "https://www.pbr.com/schedule"
+    location: "Pacific Northwest"
+    enabled: true
+
+  - name: "PRCA Rodeo Events"
+    type: rodeo
+    url: "https://www.prorodeo.com/schedule"
+    location: "Pacific Northwest"
+    enabled: true
+
+  - name: "Eventbrite Sports — Seattle"
+    type: eventbrite
+    location: "Seattle, WA"
+    radius_km: 80
+    enabled: true
+    keywords: [sports, game, event, match, game]
 # ---------------------------------------------------------------------------
 # SCAN SCHEDULE
 # ---------------------------------------------------------------------------

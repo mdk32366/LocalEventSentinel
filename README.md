@@ -3,7 +3,8 @@
 A powerful, self-hosted event monitoring and aggregation system for the Pacific Northwest. Automatically scrapes events from multiple sources, filters by your interests and location, and sends you a beautiful weekly email digest.
 
 **Features:**
-- 🔍 Multi-source event scraping (Eventbrite, Bandsintown, RSS feeds, generic web scraping)
+- 🔍 Multi-source event scraping (Eventbrite, Bandsintown, RSS feeds, generic web scraping, plus professional sports)
+- ⚾ Professional sports monitoring (MLB, NFL, Minor League Baseball, Hockey, Rodeo, PBR)
 - 🎯 Smart filtering by geographic location and interest categories
 - 📧 Beautiful HTML email digests delivered on your schedule
 - 🎨 Color-coded event categories for easy scanning
@@ -19,6 +20,7 @@ A powerful, self-hosted event monitoring and aggregation system for the Pacific 
 - [Quick Start](#quick-start)
 - [Installation](#installation)
 - [Configuration](#configuration)
+- [Professional Sports](#professional-sports)
 - [Usage](#usage)
 - [Architecture](#architecture)
 - [Troubleshooting](#troubleshooting)
@@ -181,6 +183,17 @@ categories:
 - Community Festival
 - Craft Fair
 - Lecture & Talk
+- **MLB — Major League Baseball** ⭐ NEW
+- **NFL — Professional Football** ⭐ NEW
+- **Minor League Baseball** ⭐ NEW
+- **Ice Hockey** ⭐ NEW
+- **Rodeo & Western Events** ⭐ NEW
+- **Professional Bull Riders (PBR)** ⭐ NEW
+- Outdoor & Nature
+- Film Screening
+- Community Festival
+- Craft Fair
+- Lecture & Talk
 
 ### Geographic Filter
 
@@ -202,6 +215,115 @@ geography:
 ```
 
 Set `enabled: false` to disable geographic filtering entirely.
+
+---
+
+## Professional Sports
+
+PNW Event Monitor now monitors professional sporting events across multiple leagues and organizations!
+
+### Supported Sports
+
+- **MLB** — Major League Baseball (Seattle Mariners, Pacific Northwest teams, all teams)
+- **Minor League Baseball** — Triple-A, Double-A, and independent leagues (Tacoma Rainiers, etc.)
+- **NFL** — National Football League (Seattle Seahawks, Pacific Northwest teams)
+- **NHL** — National Hockey League (Seattle Kraken, Vancouver Canucks, other PNW teams)
+- **PBR** — Professional Bull Riders events
+- **PRCA Rodeo** — Professional Rodeo Cowboys Association events
+
+### Configured Sports Sources
+
+The following sports event sources are pre-configured and enabled by default:
+
+```yaml
+sources:
+  # General Ticketmaster sports search
+  - name: "Ticketmaster Sports — Pacific Northwest"
+    type: ticketmaster
+    keywords: [baseball, football, hockey, rodeo, bull riders]
+    location: "Seattle, WA"
+    radius_km: 200
+    enabled: true
+
+  # Specific team schedules
+  - name: "MLB — Seattle Mariners Schedule"
+    type: mlb
+    team: "seattle mariners"
+    enabled: true
+
+  - name: "MiLB — Tacoma Rainiers Schedule"
+    type: milb
+    team: "tacoma rainiers"
+    enabled: true
+
+  - name: "NFL — Seattle Seahawks Schedule"
+    type: nfl
+    team: "seattle seahawks"
+    enabled: true
+
+  - name: "NHL — Seattle Kraken Schedule"
+    type: nhl
+    team: "seattle kraken"
+    enabled: true
+
+  - name: "PBR — Professional Bull Riders Schedule"
+    type: pbr
+    enabled: true
+
+  - name: "PRCA Rodeo Events"
+    type: rodeo
+    enabled: true
+```
+
+### How They Work
+
+Sports events are automatically categorized and included in your weekly digest:
+
+- **Ticketmaster:** Searches for sports keywords across the region
+- **Team Schedules:** Fetches official team/league schedules from MLB.com, NFL.com, NHL.com, PBR.com, and PRCA.com
+- **Filtering:** Sports events are filtered by geographic location (if enabled) just like other events
+- **Email:** All sports events appear in your weekly digest with their category, date, time, and venue information
+
+### Color-Coded Categories
+
+Sports events are organized by category in your email digest:
+
+| Category | Color | Sports |
+|----------|-------|--------|
+| MLB — Major League Baseball | 🔵 Blue | MLB games and events |
+| NFL — Professional Football | 🔷 Navy | NFL games and events |
+| Minor League Baseball | 🔵 Light Blue | MiLB games and tournaments |
+| Ice Hockey | 🔵 Cyan | NHL and hockey events |
+| Rodeo & Western Events | 🟤 Brown | PRCA rodeos and western events |
+| Professional Bull Riders (PBR) | 🟡 Tan | PBR events and competitions |
+
+### Adding More Teams or Leagues
+
+To add monitoring for additional teams or sports events:
+
+1. Edit `config.yaml` and add a new source under the `sources` section:
+
+```yaml
+  - name: "My Team Name"
+    type: mlb  # or nfl, nhl, milb, pbr, rodeo
+    team: "team name"
+    url: "https://official-schedule-url.com"  # Optional
+    enabled: true
+```
+
+2. Run a scan to test:
+```bash
+python monitor.py scan
+```
+
+3. For custom sports event sources, use the `web` type to scrape any event calendar page:
+
+```yaml
+  - name: "Custom Sports Event Site"
+    type: web
+    url: "https://example.com/sports-schedule"
+    enabled: true
+```
 
 ---
 
@@ -236,6 +358,7 @@ Shows upcoming events.
 Query with filters:
 ```bash
 python monitor.py query --cat "Live Music"     # Only Live Music events
+python monitor.py query --cat "MLB — Major League Baseball"  # Only MLB events
 python monitor.py query --days 7               # Next 7 days
 python monitor.py query --since 3              # Found in last 3 days
 ```
@@ -265,7 +388,7 @@ Runs continuously, performing scheduled scans and sending digests. Press `Ctrl+C
 ### Data Flow
 
 ```
-Sources (Eventbrite, Bandsintown, RSS, etc.)
+Sources (Eventbrite, Bandsintown, RSS, Ticketmaster, Sports APIs, etc.)
           ↓
     Scraper Module (scrapers.py)
           ↓
@@ -290,6 +413,14 @@ Sources (Eventbrite, Bandsintown, RSS, etc.)
 - Bandsintown artist/city search
 - Generic HTML event extraction
 - RSS/Atom feed parsing
+- **Sports sources:**
+  - Ticketmaster sports event search
+  - MLB (Major League Baseball) schedules
+  - MiLB (Minor League Baseball) schedules
+  - NFL (National Football League) schedules
+  - NHL (National Hockey League) schedules
+  - PBR (Professional Bull Riders) events
+  - PRCA Rodeo events
 
 **`filters.py`**
 - Keyword-based categorization
@@ -483,6 +614,16 @@ pnw_event_monitor/
 - Push notifications
 - Event photo/image inclusion
 
+### Sports Enhancement Ideas
+- **Ticketing integration:** Show ticket prices and availability
+- **Team-specific filters:** Filter by specific teams or leagues
+- **Live score updates:** Include scores and play-by-play updates
+- **Fantasy sports integration:** Show player statistics and fantasy points
+- **Playoff tracking:** Highlight playoff games and tournament schedules
+- **Team alerts:** Push notifications for key games (playoffs, finals, etc.)
+- **Injury reports:** Include injury updates affecting games
+- **Weather integration:** Show weather conditions for outdoor sports venues
+
 ---
 
 ## Contributing
@@ -497,12 +638,14 @@ Have ideas or found bugs? Contributions are welcome!
 
 ### Areas for Contribution
 - New event sources (Meetup, Ticketmaster, local event sites)
+- Additional sports sources (more teams, leagues, sports organizations)
 - Better event deduplication
 - Additional geographic regions
 - UI/web dashboard
 - Mobile app
 - Improved email templates
 - Performance optimizations
+- Sports-specific features (ticketing, live scores, team tracking)
 
 ---
 
