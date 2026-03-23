@@ -1,26 +1,43 @@
 # =============================================================================
-# PNW Event Monitor — Configuration
-# Edit this file to control everything. No code changes needed.
+# PNW Event Monitor — Configuration Example
+# IMPORTANT: Copy this file to config.yaml and fill in your own values.
+# NEVER commit config.yaml to git — it contains your API keys and credentials.
 # =============================================================================
 
 # ---------------------------------------------------------------------------
 # EMAIL SETTINGS
 # ---------------------------------------------------------------------------
 email:
-  to: "your.email@example.com"           # Your email address (UPDATE THIS!)
+  to: "your.email@example.com"           # Your email address where digests will be sent
   from_name: "PNW Event Monitor"
 
   # Weekly digest schedule
   send_day: "tuesday"            # monday/tuesday/wednesday/thursday/friday/saturday/sunday
-  send_time: "08:00"             # 24-hour format, local time
+  send_time: "08:00"             # 24-hour format, local time (HH:MM)
 
-  # SMTP — Gmail example (see README for other providers)
+  # SMTP configuration (choose one provider below or use custom)
+  # --- GMAIL SETUP ---
+  # 1. Enable 2-Step Verification on Google account (myaccount.google.com/security)
+  # 2. Generate App Password (myaccount.google.com/apppasswords)
+  # 3. Copy the 16-char password (without spaces) to smtp_pass
   smtp_host: "smtp.gmail.com"
   smtp_port: 587
-  smtp_user: "your.email@gmail.com"  # Sending account (UPDATE THIS!)
-  smtp_pass: "xxxx xxxx xxxx xxxx"  # Gmail App Password (UPDATE THIS! See README for setup)
-  # For SendGrid: set smtp_host to smtp.sendgrid.net, port 587,
-  #   smtp_user to "apikey", smtp_pass to your SendGrid API key
+  smtp_user: "your.email@gmail.com"      # Your Gmail sending account
+  smtp_pass: "xxxx xxxx xxxx xxxx"        # Gmail App Password (NOT your login password)
+
+  # --- SENDGRID ALTERNATIVE ---
+  # Uncomment to use SendGrid instead:
+  # smtp_host: "smtp.sendgrid.net"
+  # smtp_port: 587
+  # smtp_user: "apikey"
+  # smtp_pass: "SG.your_sendgrid_api_key_here"
+
+  # --- OFFICE 365 ALTERNATIVE ---
+  # Uncomment to use Office 365/Outlook:
+  # smtp_host: "smtp.office365.com"
+  # smtp_port: 587
+  # smtp_user: "your@outlook.com"
+  # smtp_pass: "your_password_here"
 
 # ---------------------------------------------------------------------------
 # INTEREST CATEGORIES
@@ -216,6 +233,7 @@ sources:
     type: rss
     url: "https://rss.app/feeds/REPLACE_WITH_YOUR_FEED_ID.xml"
     enabled: false
+
   # --- PROFESSIONAL SPORTS ---
   - name: "Ticketmaster Sports — Pacific Northwest"
     type: ticketmaster
@@ -266,12 +284,13 @@ sources:
     radius_km: 80
     enabled: true
     keywords: [sports, game, event, match, game]
+
 # ---------------------------------------------------------------------------
 # SCAN SCHEDULE
 # ---------------------------------------------------------------------------
 schedule:
   # Automatic background scans
-  scan_interval_hours: 12    # Scan twice daily (6am and 6pm)
+  scan_interval_hours: 12    # Scan twice daily
   lookback_days: 14          # How far ahead to look for events
   
   # How long to keep old events in the database

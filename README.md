@@ -56,8 +56,13 @@ A powerful, self-hosted event monitoring and aggregation system for the Pacific 
    pip install -r requirements.txt
    ```
 
-4. **Configure your settings:**
+4. **Set up configuration (with your secrets):**
+   ```bash
+   cp pnw_event_monitor/config.example.yaml pnw_event_monitor/config.yaml
+   ```
    Edit `config.yaml` with your email settings and interests (see [Configuration](#configuration))
+   
+   ⚠️ **IMPORTANT:** `config.yaml` contains your email credentials and should NEVER be committed to git. The `.gitignore` file automatically prevents this.
 
 5. **Test it:**
    ```bash
@@ -114,6 +119,38 @@ A powerful, self-hosted event monitoring and aggregation system for the Pacific 
 ## Configuration
 
 All configuration is in **`config.yaml`**. No code changes needed!
+
+### ⚠️ Security: Protecting Your Secrets
+
+**IMPORTANT:** The `config.yaml` file contains sensitive information (email credentials, API keys) and should **NEVER** be committed to GitHub or shared publicly.
+
+**How we protect this:**
+
+1. **`.gitignore` file** — Automatically prevents `config.yaml` from being added to git
+2. **`config.example.yaml`** — Template file with placeholder values that IS committed to git
+3. **Setup instructions** — Copy the example to create your own config
+
+**First-time setup:**
+
+```bash
+# Copy the template to create your actual config
+cp pnw_event_monitor/config.example.yaml pnw_event_monitor/config.yaml
+
+# Edit with your own credentials
+# (never commit this file to git!)
+nano pnw_event_monitor/config.yaml
+```
+
+**What to NEVER commit:**
+- ❌ Real email addresses
+- ❌ API keys
+- ❌ SMTP passwords or credentials
+- ❌ OAuth tokens
+
+**What's safe to commit:**
+- ✅ `config.example.yaml` (template with placeholders)
+- ✅ All Python code
+- ✅ Documentation and setup scripts
 
 ### Email Settings
 
@@ -560,17 +597,21 @@ launchctl load ~/Library/LaunchAgents/local.pnw-monitor.plist
 ## File Structure
 
 ```
-pnw_event_monitor/
-├── config.yaml                   # Configuration (edit this!)
-├── monitor.py                    # Main entry point
-├── database.py                   # SQLite database layer
-├── scrapers.py                   # Event scrapers
-├── filters.py                    # Filtering & categorization
-├── notify.py                     # Email digest generation
-├── requirements.txt              # Python dependencies
-├── scripts/
-│   ├── pnw-monitor.service      # Linux systemd service file
-│   └── oracle_cloud_setup.sh    # Optional cloud setup
+LocalEventSentinel/
+├── .gitignore                    # Prevents secrets from being committed
+├── README.md                     # This file
+└── pnw_event_monitor/
+    ├── config.example.yaml       # Template config (safe to commit)
+    ├── config.yaml               # YOUR CONFIG ⚠️ NOT committed to git
+    ├── monitor.py                # Main entry point
+    ├── database.py               # SQLite database layer
+    ├── scrapers.py               # Event scrapers
+    ├── filters.py                # Filtering & categorization
+    ├── notify.py                 # Email digest generation
+    ├── requirements.txt          # Python dependencies
+    ├── scripts/
+    │   ├── pnw-monitor.service  # Linux systemd service file
+    │   └── oracle_cloud_setup.sh # Optional cloud setup
 ├── data/                         # Events database (created on first run)
 ├── logs/                         # Application logs (created on first run)
 └── templates/                    # Email templates (if customization needed)
@@ -590,12 +631,41 @@ pnw_event_monitor/
 
 ## Privacy & Security
 
-- **Data:** Events are stored only locally in SQLite
-- **Email:** Uses encrypted SMTP connections (TLS/SSL)
-- **Credentials:** Store email passwords carefully in `config.yaml`
-- **No tracking:** No analytics, no external dashboards
+### Data & SMTP
 
-⚠️ **Keep `config.yaml` private!** It contains your email credentials.
+- **Data:** Events are stored only locally in SQLite (not sent anywhere)
+- **Email:** Uses encrypted SMTP connections (TLS/SSL by default)
+- **No tracking:** No analytics, no external dashboards, no telemetry
+
+### Protecting Your Secrets
+
+⚠️ **CRITICAL:** `config.yaml` contains your email credentials and should NEVER be committed to git or shared publicly.
+
+**Protection mechanisms:**
+
+- `.gitignore` automatically prevents `config.yaml` from being added to version control
+- Use `config.example.yaml` as your starting template (it is in git with placeholder values)
+- Always copy the example: `cp config.example.yaml config.yaml`
+- Keep `config.yaml` in your local directory only
+
+**If you accidentally commit secrets:**
+
+```bash
+# Remove config.yaml from git history (destructive, use with caution!)
+git rm --cached pnw_event_monitor/config.yaml
+git commit -m "Remove accidentally committed config"
+
+# Or create a new personal access token to replace the old one
+```
+
+**Best practice checklist:**
+
+- ✅ Do: Edit `config.yaml` locally with your real credentials
+- ✅ Do: Keep it in the repo directory but never commit it
+- ✅ Do: Use `config.example.yaml` as a public template
+- ❌ Don't: Share `config.yaml` files
+- ❌ Don't: Paste credentials in issues or pull requests
+- ❌ Don't: Commit API keys or passwords to any branch
 
 ---
 
