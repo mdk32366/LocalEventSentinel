@@ -18,6 +18,7 @@ A powerful, self-hosted event monitoring and aggregation system for the Pacific 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+- [New User Workflow](#new-user-workflow)
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Professional Sports](#professional-sports)
@@ -74,6 +75,68 @@ A powerful, self-hosted event monitoring and aggregation system for the Pacific 
    python monitor.py
    ```
    This starts the background monitor that sends digests on your schedule.
+
+---
+
+## New User Workflow
+
+Complete step-by-step instructions for setting up the project from scratch:
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/mdk32366/LocalEventSentinel.git
+cd LocalEventSentinel
+
+# 2. Navigate to project directory
+cd pnw_event_monitor
+
+# 3. Create a Python virtual environment
+python -m venv venv
+
+# 4. Activate the virtual environment
+# On Windows:
+venv\Scripts\activate
+# On macOS/Linux:
+source venv/bin/activate
+
+# 5. Install dependencies
+pip install -r requirements.txt
+
+# 6. Create your configuration from the template
+cp config.example.yaml config.yaml
+
+# 7. Edit configuration with your credentials
+# Use your preferred editor (nano, vim, VS Code, etc.)
+nano config.yaml
+# Edit these sections:
+#   - email.to: Your email address
+#   - email.smtp_user: Your sending email account
+#   - email.smtp_pass: Your app password (see Gmail Setup section)
+#   - categories: (optional) Customize interest categories
+#   - geography.keywords: (optional) Adjust your region
+
+# 8. Test the setup
+python monitor.py scan
+
+# 9. Verify events were found
+python monitor.py query --days 7
+
+# 10. Send a test email
+python monitor.py test-email
+
+# 11. Start the background monitor (runs 24/7)
+python monitor.py
+# Press Ctrl+C to stop
+
+# 12. (Optional) Set up as a system service
+# See "Running as a Service" section for Linux/macOS/Windows setup
+```
+
+**Important security notes:**
+- ✅ `config.yaml` is in your local directory (`.gitignore` prevents it from being committed)
+- ✅ `config.example.yaml` is in git with placeholder values for new users to copy
+- ❌ Never commit `config.yaml` to git—it contains your credentials
+- ❌ Never share or paste your `config.yaml` file
 
 ---
 
